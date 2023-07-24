@@ -1,11 +1,11 @@
 -- Set your window, this is the end time you want to look back into, should be a integer value less than zero...
 DECLARE @window INT = 0;
 -- Set the top of the current hour
-DECLARE @top_of_current DATETIMEOFFSET(7) = CAST(DATEPART(YEAR, SYSDATETIMEOFFSET()) AS CHAR(4)) + '-' +
-                                            RIGHT('0' + CONVERT(VARCHAR, DATEPART(MONTH, SYSDATETIMEOFFSET())), 2) + '-' +
-                                            RIGHT('0' + CONVERT(VARCHAR, DATEPART(DAY, SYSDATETIMEOFFSET())), 2) + ' ' +
-                                            RIGHT('0' + CONVERT(VARCHAR, DATEPART(HOUR, SYSDATETIMEOFFSET())), 2) + ':00:00 ' +
-                                            CAST(DATEPART(TZOFFSET, SYSDATETIMEOFFSET()) / 60 AS VARCHAR) + ':00',
+DECLARE @top_of_current DATETIMEOFFSET(7) = CAST(DATEPART(YEAR, DATEADD(HOUR, @window, SYSDATETIMEOFFSET())) AS CHAR(4)) + '-' +
+                                            RIGHT('0' + CONVERT(VARCHAR, DATEPART(MONTH, DATEADD(HOUR, @window, SYSDATETIMEOFFSET()))), 2) + '-' +
+                                            RIGHT('0' + CONVERT(VARCHAR, DATEPART(DAY, DATEADD(HOUR, @window, SYSDATETIMEOFFSET()))), 2) + ' ' +
+                                            RIGHT('0' + CONVERT(VARCHAR, DATEPART(HOUR, DATEADD(HOUR, @window, SYSDATETIMEOFFSET()))), 2) + ':00:00 ' +
+                                            CAST(DATEPART(TZOFFSET, DATEADD(HOUR, @window, SYSDATETIMEOFFSET())) / 60 AS VARCHAR) + ':00',
 -- how many hours back do we want to go, be cautious here, this is the hammer script and will hurt if the timespan is too wide...
 -- should be an integer value equal or less than -1 (negative one).
         @hours_back INT = -1;
