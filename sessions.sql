@@ -3,8 +3,8 @@ SET NOCOUNT ON;
 SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[duration], sub.[estimated_completion_duration], sub.[host_name], 
        sub.[client_net_address], sub.[auth_scheme], sub.[encrypt_option], sub.[dns_name], sub.[database], sub.[workload_group], sub.[command_type],
        sub.[transaction_isolation_level], sub.[transaction_name], sub.[wait_time_ms], sub.[wait_type], sub.[wait_resource], sub.[blocking_session],
-       sub.[head_blocker], [sub.open_tran_count], sub.[exec_context_id], sub.[cpu_time], sub.[current_cpu], sub.[reads], sub.[current_reads], sub.[logical_reads],
-       sub.[current_logical_reads], sub.[writes], sub.[current_writes], sub.[tempdb_allocations], sub.[current_tempdb_allocations],
+       sub.[head_blocker], sub.[open_tran_count], sub.[exec_context_id], sub.[cpu_time], sub.[current_cpu], sub.[reads], sub.[current_reads], sub.[logical_reads],
+       sub.[current_logical_reads], sub.[writes], sub.[current_writes], sub.[tempdb_allocations], sub.[tempdb_current_allocations],
        CASE
          WHEN sub.[command_type] <> 'AWAITING COMMAND' THEN sub.[executing_statement]
          ELSE NULL
@@ -28,7 +28,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                  (SELECT t.[text]
                     FROM sys.dm_exec_cursors(sub.[session_id]) cur
                    CROSS APPLY sys.dm_exec_sql_text(cur.[sql_handle]) t)
-             ELSE (SELECT ISNULL(NULLIF(SUBSTRING([text], sub.[statement_start_offset] / 2) + 1, (CASE
+             ELSE (SELECT ISNULL(NULLIF(SUBSTRING([text], (sub.[statement_start_offset] / 2) + 1, (CASE
                                                                                                     WHEN sub.[statement_end_offset] = -1 THEN DATALENGTH([text])
                                                                                                     ELSE sub.[statement_end_offset]
                                                                                                   END - sub.[statement_start_offset]) / 2 + 1), ''), [text])
@@ -36,7 +36,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
            END
          ELSE NULL
        END [executing_statement]
-  FROM (SELECT DISTINCT s.[session_id], s.[is_user_process,
+  FROM (SELECT DISTINCT s.[session_id], s.[is_user_process],
                COALESCE(CASE dtat.[transaction_type]
                           WHEN 4 THEN CASE dtat.[dtc_state]
                                         WHEN 1 THEN 'Active'
@@ -55,7 +55,8 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                                  WHEN 6 THEN 'Committed'
                                  WHEN 7 THEN 'Rolling Back'
                                  WHEN 8 THEN 'Rolled Back'
-                        END, r.[status]) [state], r.[percent_complete]
+                               END
+                        END, r.[status]) [state], r.[percent_complete],
                CASE
                  WHEN s.[login_name] = s.[original_login_name] THEN s.[login_name]
                  ELSE s.[original_login_name]
@@ -85,12 +86,18 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                            JOIN sys.availability_group_listeners agl
                              ON agl.[listener_id] = aglip.[listener_id]
                           WHERE aglip.[ip_address] = c.[local_net_address]), @@SERVERNAME) [dns_name], DB_NAME(s.[database_id]) [database], wg.[name] [workload_group],
-               COALESCE(r.[command], 'AWAITING COMMAND') [command],
+               COALESCE(r.[command], 'AWAITING COMMAND') [command_type],
                CASE s.[transaction_isolation_level]
+                 WHEN 0 THEN 'Unspecified'
+                 WHEN 1 THEN 'ReadUncommitted'
+                 WHEN 2 THEN 'ReadCommitted'
+                 WHEN 3 THEN 'Repeatable'
+                 WHEN 4 THEN 'Serializable'
+                 WHEN 5 THEN 'Snapshot'
                END [transaction_isolation_level], dtat.[name] [transaction_name], w.[wait_duration_ms] [wait_time_ms], w.[wait_type],
                w.[resource_description] [wait_resource], COALESCE(r.[blocking_session_id], 0) [blocking_session],
                CASE
-                 WHEN r2.[session_id] IS NOT NULL AND (r.[blocking_session_id = 0 OR r.[session_id] IS NULL) THEN '1'
+                 WHEN r2.[session_id] IS NOT NULL AND (r.[blocking_session_id] = 0 OR r.[session_id] IS NULL) THEN '1'
                  ELSE NULL
                END [head_blocker], COALESCE(r.[open_transaction_count], tr.[open_transaction_count]) [open_tran_count], tsu.[exec_context_id], s.[cpu_time],
                r.[cpu_time] [current_cpu], s.[reads], r.[reads] [current_reads], s.[logical_reads], r.[logical_reads] [current_logical_reads], s.[writes],
@@ -108,10 +115,10 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
           LEFT JOIN sys.dm_tran_session_transactions tr
             ON tr.[session_id] = s.[session_id]
           LEFT JOIN sys.dm_tran_active_transactions dtat
-            ON dtat.[transaction_id] tr.[transaction_id]
+            ON dtat.[transaction_id] = tr.[transaction_id]
           LEFT JOIN sys.dm_os_tasks t
             ON t.[session_id] = s.[session_id]
-           AND t.[request_id] r.[request_id]
+           AND t.[request_id] = r.[request_id]
           LEFT JOIN sys.dm_db_task_space_usage tsu
             ON tsu.[session_id] = t.[session_id]
            AND tsu.[request_id] = t.[request_id]
@@ -120,8 +127,8 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                        FROM sys.dm_os_waiting_tasks) w
             ON w.[waiting_task_address] = t.[task_address]
            AND w.[row_num] = 1
-          LEFT JOIN sys.dm_resource_governor_workload_group wg
+          LEFT JOIN sys.dm_resource_governor_workload_groups wg
             ON wg.[group_id] = s.[group_id]
-         CROSS APPLY sys.dm_exec_input_buffer(s.[session_id], r.[request_id] deib) sub
+         CROSS APPLY sys.dm_exec_input_buffer(s.[session_id], r.[request_id]) deib) sub
  WHERE sub.[is_user_process] = 1
  ORDER BY sub.[duration] DESC, sub.[session_id], sub.[exec_context_id];
