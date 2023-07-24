@@ -2,7 +2,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET NOCOUNT ON;
 SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[duration], sub.[estimated_completion_duration], sub.[host_name], 
        sub.[client_net_address], sub.[auth_scheme], sub.[encrypt_option], sub.[dns_name], sub.[database], sub.[workload_group], sub.[command_type],
-       sub.[transaction_isolation_level], sub.[transaction_name], sub.[wait_type_ms], sub.[wait_type], sub.[wait_resource], sub.[blocking_session],
+       sub.[transaction_isolation_level], sub.[transaction_name], sub.[wait_time_ms], sub.[wait_type], sub.[wait_resource], sub.[blocking_session],
        sub.[head_blocker], [sub.open_tran_count], sub.[exec_context_id], sub.[cpu_time], sub.[current_cpu], sub.[reads], sub.[current_reads], sub.[logical_reads],
        sub.[current_logical_reads], sub.[writes], sub.[current_writes], sub.[tempdb_allocations], sub.[current_tempdb_allocations],
        CASE
@@ -30,7 +30,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                    CROSS APPLY sys.dm_exec_sql_text(cur.[sql_handle]) t)
              ELSE (SELECT ISNULL(NULLIF(SUBSTRING([text], sub.[statement_start_offset] / 2) + 1, (CASE
                                                                                                     WHEN sub.[statement_end_offset] = -1 THEN DATALENGTH([text])
-                                                                                                    ELSE sub.[statment_end_offset]
+                                                                                                    ELSE sub.[statement_end_offset]
                                                                                                   END - sub.[statement_start_offset]) / 2 + 1), ''), [text])
                      FROM sys.dm_exec_sql_text(sub.[sql_handle]))
            END
@@ -58,12 +58,12 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                         END, r.[status]) [state], r.[percent_complete]
                CASE
                  WHEN s.[login_name] = s.[original_login_name] THEN s.[login_name]
-                 ELSE s.[origainal_login_name]
+                 ELSE s.[original_login_name]
                END [login],
                CASE
                  WHEN r.[total_elapsed_time] > 0 THEN RIGHT('000' + CONVERT(VARCHAR, (r.[total_elapsed_time] / 1000 / 3600 / 24)), 3) + ' ' +
                                                       RIGHT('0' + CONVERT(VARCHAR, (r.[total_elapsed_time] / 1000 / 3600 % 24)), 2) + ':' +
-                                                      RIGHT('0' + CONVERT(VARCHAR, (r.[total_elapsed_time] / 1000 % 3600 / 60)), 2 + ':' +
+                                                      RIGHT('0' + CONVERT(VARCHAR, (r.[total_elapsed_time] / 1000 % 3600 / 60)), 2) + ':' +
                                                       RIGHT('0' + CONVERT(VARCHAR, (r.[total_elapsed_time] / 1000 % 60)), 2) + '.' +
                                                       RIGHT('000' + CONVERT(VARCHAR, (r.[total_elapsed_time] % 1000)), 3)
                  WHEN r.[total_elapsed_time] < 0 THEN RIGHT('000' + CONVERT(VARCHAR, ((2147483647 + ABS(-2147483647 - CAST(r.[total_elapsed_time]  AS BIGINT))) / 1000 / 3600 / 24)), 3) + ' ' +
@@ -75,11 +75,11 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                CASE
                  WHEN r.[estimated_completion_time] > 0 THEN RIGHT('000' + CONVERT(VARCHAR, (r.[estimated_completion_time] / 1000 / 3600 / 24)), 3) + ' ' +
                                                              RIGHT('0' + CONVERT(VARCHAR, (r.[estimated_completion_time] / 1000 / 3600 % 24)), 2) + ':' +
-                                                             RIGHT('0' + CONVERT(VARCHAR, (r.[estimated_completion_time] / 1000 % 3600 / 60)), 2 + ':' +
+                                                             RIGHT('0' + CONVERT(VARCHAR, (r.[estimated_completion_time] / 1000 % 3600 / 60)), 2) + ':' +
                                                              RIGHT('0' + CONVERT(VARCHAR, (r.[estimated_completion_time] / 1000 % 60)), 2) + '.' +
                                                              RIGHT('000' + CONVERT(VARCHAR, (r.[estimated_completion_time] % 1000)), 3)
                  ELSE NULL
-               END [estimated_completion_time], s.[host_name], c.[client_net_address], c.[auth_scheme], c.[encrypt_option], s.[program_name],
+               END [estimated_completion_duration], s.[host_name], c.[client_net_address], c.[auth_scheme], c.[encrypt_option], s.[program_name],
                COALESCE((SELECT agl.[dns_name]
                            FROM sys.availability_group_listener_ip_addresses aglip
                            JOIN sys.availability_group_listeners agl
@@ -94,9 +94,9 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                  ELSE NULL
                END [head_blocker], COALESCE(r.[open_transaction_count], tr.[open_transaction_count]) [open_tran_count], tsu.[exec_context_id], s.[cpu_time],
                r.[cpu_time] [current_cpu], s.[reads], r.[reads] [current_reads], s.[logical_reads], r.[logical_reads] [current_logical_reads], s.[writes],
-               r.[writes] [current_writes], ((tsu.[user_object_alloc_page_count] + tsu.[internal_object_alloc_page_count]) * 1.0) / 128 [tempdb_allocations],
-               ((tsu.[user_object_alloc_page_count] + tsu.[internal_object_alloc_page_count] - tsu.[user_objects_dealloc_page_count - tsu.[internal_objects_dealloc_page_count]) * 1.0) / 128 [tempdb_current_allocations],
-               deib.[event_info] [executing_statement], r.[plan_handle], COALESCE(r.[sql_handle], c.[most_recent_sql_handle]) [sql_handle], r.[statment_start_offset],
+               r.[writes] [current_writes], ((tsu.[user_objects_alloc_page_count] + tsu.[internal_objects_alloc_page_count]) * 1.0) / 128 [tempdb_allocations],
+               ((tsu.[user_objects_alloc_page_count] + tsu.[internal_objects_alloc_page_count] - tsu.[user_objects_dealloc_page_count] - tsu.[internal_objects_dealloc_page_count]) * 1.0) / 128 [tempdb_current_allocations],
+               deib.[event_info] [executing_statement], r.[plan_handle], COALESCE(r.[sql_handle], c.[most_recent_sql_handle]) [sql_handle], r.[statement_start_offset],
                r.[statement_end_offset]
           FROM sys.dm_exec_sessions s
           LEFT JOIN sys.dm_exec_connections c
@@ -122,6 +122,6 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
            AND w.[row_num] = 1
           LEFT JOIN sys.dm_resource_governor_workload_group wg
             ON wg.[group_id] = s.[group_id]
-         CROSS APPLY sys.dm_exec_input_buffer(s.[session_id], r.[request_id] deig) sub
+         CROSS APPLY sys.dm_exec_input_buffer(s.[session_id], r.[request_id] deib) sub
  WHERE sub.[is_user_process] = 1
  ORDER BY sub.[duration] DESC, sub.[session_id], sub.[exec_context_id];
