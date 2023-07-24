@@ -1,6 +1,6 @@
 -- Set your window, this is the end time you want to look back into, should be a integer value less than zero...
 DECLARE @window INT = 0;
--- Set the top of the current hour
+-- Set the top of the hour, either current (when @window is set to zero) or whichever hour is chosen
 DECLARE @top_of_current DATETIMEOFFSET(7) = CAST(DATEPART(YEAR, DATEADD(HOUR, @window, SYSDATETIMEOFFSET())) AS CHAR(4)) + '-' +
                                             RIGHT('0' + CONVERT(VARCHAR, DATEPART(MONTH, DATEADD(HOUR, @window, SYSDATETIMEOFFSET()))), 2) + '-' +
                                             RIGHT('0' + CONVERT(VARCHAR, DATEPART(DAY, DATEADD(HOUR, @window, SYSDATETIMEOFFSET()))), 2) + ' ' +
