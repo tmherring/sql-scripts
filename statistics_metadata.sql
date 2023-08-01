@@ -14,7 +14,9 @@ SELECT OBJECT_SCHEMA_NAME(o.[object_id], DB_ID()) [schema_name], o.[name] [objec
        s.[name] [stat_name], s.[is_incremental], ddisp.[partition_number], ddisp.[rows], ddisp.[modification_counter],
        ROUND(SQRT(COALESCE(ddps.[row_count], ddisp.[rows]) * 1000), 0) [autostat_target_modifications],
        CAST((ddisp.[modification_counter] / (ddisp.[rows] * 1.0)) * 100 AS REAL) [pct_change], ddisp.[last_updated],
-       s.[has_filter], s.[has_persisted_sample], CAST((ddisp.[rows_sampled] / (ddisp.[rows] * 1.0) * 100.0) AS REAL) [used_sample_rate],
+       s.[has_filter],
+       s.[has_persisted_sample], -- For SQL Server 2016, comment this line out
+       CAST((ddisp.[rows_sampled] / (ddisp.[rows] * 1.0) * 100.0) AS REAL) [used_sample_rate],
        ddsp.[persisted_sample_percent], ddps.[used_page_count] [pages], ddps.[row_count] [current_rows]
   FROM sys.objects o
   JOIN sys.stats s
@@ -32,9 +34,11 @@ SELECT OBJECT_SCHEMA_NAME(o.[object_id], DB_ID()) [schema_name], o.[name] [objec
  UNION ALL
 SELECT OBJECT_SCHEMA_NAME(o.[object_id], DB_ID()) [schema_name], o.[name] [object_name], o.[type_desc],
        s.[name] [stat_name], s.[is_incremental], NULL [partition_number], ddsp.[rows], ddsp.[modification_counter],
-        ROUND(SQRT(COALESCE(ddps.[row_count], sp.[rows]) * 1000), 0) [autostat_target_modifications],
+       ROUND(SQRT(COALESCE(ddps.[row_count], ddsp.[rows]) * 1000), 0) [autostat_target_modifications],
        CAST((ddsp.[modification_counter] / (ddsp.[rows] * 1.0)) * 100 AS REAL) [pct_change], ddsp.[last_updated],
-       s.[has_filter], s.[has_persisted_sample], CAST((ddsp.[rows_sampled] / (ddsp.[rows] * 1.0) * 100.0) AS REAL) [used_sample_rate],
+       s.[has_filter],
+       s.[has_persisted_sample], -- For SQL Server 2016, comment this line out
+       CAST((ddsp.[rows_sampled] / (ddsp.[rows] * 1.0) * 100.0) AS REAL) [used_sample_rate],
        ddsp.[persisted_sample_percent], ddps.[used_page_count] [pages], ddps.[row_count] [current_rows]
   FROM sys.objects o
   JOIN sys.stats s
