@@ -13,7 +13,7 @@ SELECT deqmg.[session_id], DB_NAME(der.[database_id]) [database_name], COALESCE(
        END [pending_grant_duration (DDD HH:MM:SS.FFF)], deqmg.[grant_time], deib.[event_info] [text], TRY_CAST(deqp.[query_plan] AS XML) [query_plan]
   FROM sys.dm_exec_query_memory_grants deqmg
   JOIN sys.dm_exec_requests der 
-    ON er.[session_id] = mg.[session_id]
+    ON der.[session_id] = deqmg.[session_id]
   JOIN sys.dm_exec_sessions es
     ON es.[session_id] = der.[session_id]
   JOIN sys.dm_exec_connections ec
