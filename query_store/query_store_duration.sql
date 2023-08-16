@@ -74,7 +74,7 @@ BEGIN
      CROSS APPLY (SELECT rs.[plan_id], rs.[execution_type_desc] [execution_type], SUM(rs.[count_executions]) [count_executions],
                          CONVERT(datetime, SWITCHOFFSET(CONVERT(datetimeoffset, DATEADD(HOUR, ((DATEDIFF(HOUR, 0, rs.[last_execution_time]))), 0)), DATENAME(tzoffset, SYSDATETIMEOFFSET()))) [bucket_start],
                          CONVERT(datetime, SWITCHOFFSET(CONVERT(datetimeoffset, DATEADD(HOUR, (1 + (DATEDIFF(HOUR, 0, rs.[last_execution_time]))), 0)), DATENAME(tzoffset, SYSDATETIMEOFFSET()))) [bucket_end],
-                         ROUND(CONVERT(float, SUM(rs.[avg_duration] * rs.[count_executions)) / NULLIF(SUM(rs.count_executions), 0) * 0.001, 2) [avg_duration],
+                         ROUND(CONVERT(float, SUM(rs.[avg_duration] * rs.[count_executions])) / NULLIF(SUM(rs.[count_executions]), 0) * 0.001, 2) [avg_duration],
                          ROUND(CONVERT(float, MAX(rs.[max_duration])) * 0.001, 2) [max_duration],
                          ROUND(CONVERT(float, MIN(rs.[min_duration])) * 0.001, 2) [min_duration],
                          ROUND(CONVERT(float, SQRT(SUM(rs.[stdev_duration] * rs.[stdev_duration] * rs.[count_executions]) / NULLIF(SUM(rs.[count_executions]), 0))) * 0.001, 2) [stdev_duration],
