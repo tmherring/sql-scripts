@@ -20,14 +20,14 @@ DECLARE @object nvarchar(386) = NULL,
 
 DECLARE @dbname sysname, @type char(2), @id int, @ms_shipped bit;
 
-IF @update_usage IS NOT NULL
-BEGIN
-    IF LOWER(TRIM(@update_usage)) NOT IN ('true', 'false')
-    BEGIN
-        SET @message = N'''' + LOWER(TRIM(@update_usage)) + N''' is not a valid option for the @update_usage parameter. Enter either ''true'' or ''false''.';
-        THROW 51000, @message, 1;
-    END
-END
+--IF @update_usage IS NOT NULL
+--BEGIN
+--    IF LOWER(TRIM(@update_usage)) NOT IN ('true', 'false')
+--    BEGIN
+--        SET @message = N'''' + LOWER(TRIM(@update_usage)) + N''' is not a valid option for the @update_usage parameter. Enter either ''true'' or ''false''.';
+--        THROW 51000, @message, 1;
+--    END
+--END
 
 IF @summary IS NOT NULL
 BEGIN
@@ -46,7 +46,7 @@ END
 ELSE
 BEGIN
     SELECT @ms_shipped = CASE
-                           WHEN LOWER(TRIM(COALESCE(@system_objects, 'false'))) THEN 1
+                           WHEN LOWER(TRIM(COALESCE(@system_objects, 'false'))) = 'true' THEN 1
                            ELSE NULL
                          END;
 END
@@ -89,17 +89,17 @@ BEGIN
     END
 END
 
-IF LOWER(TRIM(@update_usage)) = 'true'
-BEGIN
-    IF @object IS NULL
-    BEGIN
-        DBCC UPDATEUSAGE(0) WITH NO_INFOMSGS;
-    END
-    ELSE
-    BEGIN
-        DBCC UPDATEUSAGE(0, @object) WITH NO_INFOMSGS;
-    END
-END
+--IF LOWER(TRIM(@update_usage)) = 'true'
+--BEGIN
+--    IF @object IS NULL
+--    BEGIN
+--        DBCC UPDATEUSAGE(0) WITH NO_INFOMSGS;
+--    END
+--    ELSE
+--    BEGIN
+--        DBCC UPDATEUSAGE(0, @object) WITH NO_INFOMSGS;
+--    END
+--END
 
 IF LOWER(TRIM(@summary)) = 'true'
 BEGIN
@@ -127,13 +127,13 @@ BEGIN
            LTRIM(STR((CASE
                         WHEN @dbsize >= @reserved_pages THEN CONVERT(decimal(19, 2), @dbsize) - CONVERT(decimal(19, 2), @reserved_pages)) * 8192 / 1048576
                         ELSE 0
-                      END), 19, 2) + ' MB' = [unallocated_space];
+                      END), 19, 2) + ' MB') [unallocated_space];
 
     -- calculate summary data
     SELECT TRIM(STR(@reserved_pages * 8192 / 1024.0, 19, 0) + ' KB') [reserved],
            TRIM(STR(@pages * 8192 / 1024.0, 19, 0) + ' KB') [data],
            TRIM(STR((@used_pages - @pages) * 8192 / 1024.0, 19, 0) + ' KB') [index_size],
-           TRIM(STR((@reserved_pages - @used_pages) * 8192 / 1024.0, 19, 0) + ' KB' [unused];
+           TRIM(STR((@reserved_pages - @used_pages) * 8192 / 1024.0, 19, 0) + ' KB') [unused];
 END
 
 IF LOWER(TRIM(@schema_data)) = 'true'
@@ -158,7 +158,7 @@ SELECT QUOTENAME(OBJECT_SCHEMA_NAME(core1.[object_id])) [schema_name], QUOTENAME
        TRIM(STR((CASE
                    WHEN (core1.[used] + COALESCE(core2.[used], 0)) > core1.[pages] THEN ((core1.[used] + COALESCE(core2.[used], 0)) - core1.[pages])
                    ELSE 0
-                 END) * 8, 19, 0) + ' KB') [index_size]
+                 END) * 8, 19, 0) + ' KB') [index_size],
        TRIM(STR((CASE
                    WHEN (core1.[reserved] + COALESCE(core2.[reserved], 0)) > (core1.[used] + COALESCE(core2.[used], 0)) THEN ((core1.[reserved] + COALESCE(core2.[reserved], 0)) - (core1.[used] + COALESCE(core2.[used], 0)))
                    ELSE 0
