@@ -125,7 +125,7 @@ BEGIN
     -- unallocated space should not be negative
     SELECT DB_NAME() [database_name], LTRIM(STR((CONVERT(decimal(19, 2), @dbsize) + CONVERT(decimal(19, 2), @logsize)) * 8192 / 1048576, 19, 2) + ' MB') [database_size],
            LTRIM(STR((CASE
-                        WHEN @dbsize >= @reserved_pages THEN CONVERT(decimal(19, 2), @dbsize) - CONVERT(decimal(19, 2), @reserved_pages)) * 8192 / 1048576
+                        WHEN @dbsize >= @reserved_pages THEN (CONVERT(decimal(19, 2), @dbsize) - CONVERT(decimal(19, 2), @reserved_pages)) * 8192 / 1048576
                         ELSE 0
                       END), 19, 2) + ' MB') [unallocated_space];
 
@@ -162,8 +162,8 @@ SELECT QUOTENAME(OBJECT_SCHEMA_NAME(core1.[object_id])) [schema_name], QUOTENAME
        TRIM(STR((CASE
                    WHEN (core1.[reserved] + COALESCE(core2.[reserved], 0)) > (core1.[used] + COALESCE(core2.[used], 0)) THEN ((core1.[reserved] + COALESCE(core2.[reserved], 0)) - (core1.[used] + COALESCE(core2.[used], 0)))
                    ELSE 0
-                 END) * 8, 19, 0) + ' KB' [unused]
-  FROM (SELECT base.[object_id], SUM(base.[reserved_page_count]) [reserved], SUM(base.[used_page_count] [used],
+                 END) * 8, 19, 0) + ' KB') [unused]
+  FROM (SELECT base.[object_id], SUM(base.[reserved_page_count]) [reserved], SUM(base.[used_page_count]) [used],
                SUM(CASE
                      WHEN base.[index_id] < 2 THEN (base.[in_row_data_page_count] + base.[lob_used_page_count] + base.[row_overflow_used_page_count])
                      ELSE base.[lob_used_page_count] + base.[row_overflow_used_page_count]
