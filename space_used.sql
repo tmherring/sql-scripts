@@ -15,10 +15,10 @@ DECLARE @object nvarchar(386) = NULL,
         --@update_usage char(5) = 'false',
         @summary char(5) = 'true',
         @system_objects char(5) = 'false',
-        @schema_data char(5) = 'true',
-        @message nvarchar(2048) = NULL;
+        @schema_data char(5) = 'true';
 
-DECLARE @dbname sysname, @type char(2), @id int, @ms_shipped bit;
+DECLARE @dbname sysname, @type char(2), @id int, @ms_shipped bit,
+        @message nvarchar(2048) = NULL;
 
 --IF @update_usage IS NOT NULL
 --BEGIN
