@@ -169,7 +169,7 @@ SELECT QUOTENAME(OBJECT_SCHEMA_NAME(core1.[object_id])) [schema_name], QUOTENAME
                      ELSE base.[lob_used_page_count] + base.[row_overflow_used_page_count]
                    END) [pages],
                SUM(CASE
-                     WHEN base.[index_id] < 2) THEN base.[row_count]
+                     WHEN base.[index_id] < 2 THEN base.[row_count]
                      ELSE 0
                    END) [rows], base.[partition_number]
           FROM sys.dm_db_partition_stats base
