@@ -18,7 +18,7 @@ BEGIN
     ), file_pattern AS (
         SELECT REVERSE(SUBSTRING(REVERSE([file_name]), CHARINDEX(N'\', REVERSE([file_name])), 255)) + N'system_health*.xel' [pattern]
           FROM system_health_xe
-    ), deadlock_reports (
+    ), deadlock_reports AS (
         SELECT CAST(trf.[event_data] AS xml) [event_data]
           FROM file_pattern fp
         CROSS APPLY sys.fn_xe_file_target_read_file(fp.[pattern], NULL, NULL, NULL) trf
