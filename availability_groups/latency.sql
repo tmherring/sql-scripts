@@ -1,13 +1,13 @@
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET NOCOUNT ON;
 DECLARE @ag_name nvarchar(128) = NULL;
-SELECT ar.replica_server_name [AvailabilityReplicaServerName], dbcs.[database_name] [AvailabilityDatabaseName], dbcs.[group_database_id] [AvailabilityDatabaseId],
+SELECT ar.[replica_server_name] [AvailabilityReplicaServerName], dbcs.[database_name] [AvailabilityDatabaseName], dbcs.[group_database_id] [AvailabilityDatabaseId],
        ar.[group_id] [AvailabilityGroupId], ag.[name] [AvailabilityGroupName], ar.[replica_id] [AvailabilityReplicaId], COALESCE(dbr.[database_id], 0) [DatabaseId],
-       COALESCE(dbr.[end_of_log_lsn, 0) [EndOfLogLSN],
+       COALESCE(dbr.[end_of_log_lsn], 0) [EndOfLogLSN],
        CASE
          WHEN dbr.[is_primary_replica] = 1 THEN 1
          WHEN dbcs.[is_failover_ready] = 1 THEN 0
-         ELSE COALESCE(DATEDIFF(ss, dbr.[last_commit_time], dbrp.[last_commit_time]), -2)
+         ELSE COALESCE(DATEDIFF(SECOND, dbr.[last_commit_time], dbrp.[last_commit_time]), -2)
        END [EstimatedDataLoss],
        COALESCE(CASE
                   WHEN dbr.[is_primary_replica] = 1 THEN -1
@@ -17,8 +17,8 @@ SELECT ar.replica_server_name [AvailabilityReplicaServerName], dbcs.[database_na
                   ELSE CAST(dbr.[redo_queue_size] AS real) / dbr.[redo_rate]
                 END, -2) [EstimatedRecoveryTime],
        COALESCE(dbr.[filestream_send_rate], -1) [FileStreamSendRate], COALESCE(dbcs.[is_failover_ready], 0) [IsFailoverReady], COALESCE(dbcs.[is_database_joined], 0) [IsJoined],
-       arstates.[is_local] [IsLocal], COALESCE(dbr.[is_suspended], 0) [IsSuspended], COALESCE(dbr.last_commit_lsn], 0) [LastCommitLSN], COALESCE(dbr.[last_commit_time], 0) [LastCommitTime],
-       COALESCE(dbr.[last_hardened_lsn], 0) [LastHardenedLSN], COALESCE(dbr.[last_hardened_time], 0) [LastHardenedTime], COALESCE(dbr.[last_received_lsn, 0) [LastReceivedLSN],
+       arstates.[is_local] [IsLocal], COALESCE(dbr.[is_suspended], 0) [IsSuspended], COALESCE(dbr.[last_commit_lsn], 0) [LastCommitLSN], COALESCE(dbr.[last_commit_time], 0) [LastCommitTime],
+       COALESCE(dbr.[last_hardened_lsn], 0) [LastHardenedLSN], COALESCE(dbr.[last_hardened_time], 0) [LastHardenedTime], COALESCE(dbr.[last_received_lsn], 0) [LastReceivedLSN],
        COALESCE(dbr.[last_receieved_time], 0) [LastReceivedTime], COALESCE(dbr.[last_redone_lsn], 0) [LastRedoneLSN], COALESCE(dbr.[last_redone_time], 0) [LastRedoneTime],
        COALESCE(dbr.[last_sent_lsn], 0) [LastSentLSN], COALESCE(dbr.[last_sent_time], 0) [LastSentTime], COALESCE(dbr.[log_send_queue_size], -1) [LogSendQueueSize],
        COALESCE(dbr.[log_send_rate], -1) [LogSendRate], COALESCE(dbr.[recovery_lsn]), 0) [RecoveryLSN], COALESCE(dbr.[redo_queue_size], -1) [RedoQueueSize],
