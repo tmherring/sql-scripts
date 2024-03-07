@@ -7,7 +7,7 @@ SELECT dosi.[max_workers_count], dow.[total_worker_threads], dot.[total_threads_
   FROM sys.dm_os_sys_info dosi
  CROSS APPLY (SELECT COUNT(1) [total_threads_used]
                 FROM sys.dm_os_threads) dot
- CROSS APPLY (SELECT COUNT(1)
+ CROSS APPLY (SELECT COUNT(1) [total_worker_threads]
                 FROM sys.dm_os_workers) dow;
 
 PRINT '************************************************************************************';
