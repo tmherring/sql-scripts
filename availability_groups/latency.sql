@@ -19,9 +19,9 @@ SELECT ar.[replica_server_name] [AvailabilityReplicaServerName], dbcs.[database_
        COALESCE(dbr.[filestream_send_rate], -1) [FileStreamSendRate], COALESCE(dbcs.[is_failover_ready], 0) [IsFailoverReady], COALESCE(dbcs.[is_database_joined], 0) [IsJoined],
        arstates.[is_local] [IsLocal], COALESCE(dbr.[is_suspended], 0) [IsSuspended], COALESCE(dbr.[last_commit_lsn], 0) [LastCommitLSN], COALESCE(dbr.[last_commit_time], 0) [LastCommitTime],
        COALESCE(dbr.[last_hardened_lsn], 0) [LastHardenedLSN], COALESCE(dbr.[last_hardened_time], 0) [LastHardenedTime], COALESCE(dbr.[last_received_lsn], 0) [LastReceivedLSN],
-       COALESCE(dbr.[last_receieved_time], 0) [LastReceivedTime], COALESCE(dbr.[last_redone_lsn], 0) [LastRedoneLSN], COALESCE(dbr.[last_redone_time], 0) [LastRedoneTime],
+       COALESCE(dbr.[last_received_time], 0) [LastReceivedTime], COALESCE(dbr.[last_redone_lsn], 0) [LastRedoneLSN], COALESCE(dbr.[last_redone_time], 0) [LastRedoneTime],
        COALESCE(dbr.[last_sent_lsn], 0) [LastSentLSN], COALESCE(dbr.[last_sent_time], 0) [LastSentTime], COALESCE(dbr.[log_send_queue_size], -1) [LogSendQueueSize],
-       COALESCE(dbr.[log_send_rate], -1) [LogSendRate], COALESCE(dbr.[recovery_lsn]), 0) [RecoveryLSN], COALESCE(dbr.[redo_queue_size], -1) [RedoQueueSize],
+       COALESCE(dbr.[log_send_rate], -1) [LogSendRate], COALESCE(dbr.[recovery_lsn], 0) [RecoveryLSN], COALESCE(dbr.[redo_queue_size], -1) [RedoQueueSize],
        COALESCE(ar.[availability_mode], 2) [ReplicaAvailabilityMode], COALESCE(arstates.[role], 3) [ReplicaRole], COALESCE(dbr.[suspend_reason], 7) [SuspendReason],
        COALESCE(CASE dbr.[log_send_rate]
                   WHEN 0 THEN -1
@@ -44,6 +44,7 @@ SELECT ar.[replica_server_name] [AvailabilityReplicaServerName], dbcs.[database_
                LEFT JOIN sys.dm_hadr_availability_replica_states ars
                  ON ars.[replica_id] = drs.[replica_id]
               WHERE ars.[role] = 1) dbrp
+    ON dbrp.[database_id] = dbr.[database_id]
  WHERE ag.[name] = COALESCE(@ag_name, ag.[name])
  ORDER BY [AvailabilityReplicaServerName], [AvailabilityDatabaseName];
 GO
