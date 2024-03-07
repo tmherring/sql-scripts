@@ -13,7 +13,7 @@ SELECT ag.[name] [ag_name], arcs.[replica_server_name] [replica], ars.[role_desc
     ON ar.[replica_id] = arcs.[replica_id]
   JOIN sys.dm_hadr_availability_replica_states ars
     ON ars.[replica_id] = ar.[replica_id]
-  LEFT JOIN sys.availabilty_group_listeners agl
+  LEFT JOIN sys.availability_group_listeners agl
     ON agl.[group_id] = ar.[group_id]
  ORDER BY [ag_name], [replica]
 GO
