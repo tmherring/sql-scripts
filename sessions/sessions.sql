@@ -8,7 +8,7 @@ SET NOCOUNT ON;
 SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[memory_grant_time], sub.[duration], sub.[estimated_completion_duration], sub.[host_name], 
        sub.[client_net_address], sub.[auth_scheme], sub.[encrypt_option], sub.[dns_name], sub.[database], sub.[workload_group], sub.[command_type],
        sub.[transaction_isolation_level], sub.[transaction_name], TRY_CAST(sub.[waits] AS XML) [waits], sub.[blocking_session], sub.[active_threads], sub.[dop],
-       sub.[head_blocker], sub.[open_tran_count], sub.[exec_context_id], sub.[cpu_time], sub.[current_cpu], sub.[reads], sub.[current_reads], sub.[logical_reads],
+       sub.[head_blocker], sub.[open_tran_count], sub.[active_threads], sub.[dop], sub.[cpu_time], sub.[current_cpu], sub.[reads], sub.[current_reads], sub.[logical_reads],
        sub.[current_logical_reads], sub.[writes], sub.[current_writes], TRY_CAST(sub.[tempdb_utilization] AS XML) [tempdb_utilization],
        CASE
          WHEN sub.[command_type] <> 'AWAITING COMMAND' THEN sub.[executing_statement]
@@ -90,7 +90,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                            FROM sys.availability_group_listener_ip_addresses aglip
                            JOIN sys.availability_group_listeners agl
                              ON agl.[listener_id] = aglip.[listener_id]
-                          WHERE aglip.[ip_address] = dec.[local_net_address]), @@SERVERNAME) [dns_name], DB_NAME(des.[database_id]) [database], wg.[name] [workload_group],
+                          WHERE aglip.[ip_address] = dec.[local_net_address]), @@SERVERNAME) [dns_name], DB_NAME(des.[database_id]) [database], drgwg.[name] [workload_group],
                COALESCE(der.[command], 'AWAITING COMMAND') [command_type],
                CASE des.[transaction_isolation_level]
                  WHEN 0 THEN 'Unspecified'
@@ -111,7 +111,9 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                END [head_blocker], COALESCE(der.[open_transaction_count], dtst.[open_transaction_count]) [open_tran_count], COUNT(dot.exec_context_id) [active_threads], deqmg.[dop],
                des.[cpu_time], der.[cpu_time] [current_cpu], des.[reads], der.[reads] [current_reads], des.[logical_reads], der.[logical_reads] [current_logical_reads], des.[writes],
                der.[writes] [current_writes],
-               [tempdb_utilization] = (SELECT
+               [tempdb_utilization] = (SELECT ddtsu.[exec_context_id],
+                                              ((ddtsu.[user_objects_alloc_page_count] + ddtsu.[internal_objects_alloc_page_count]) * 1.0) / 128 [tempdb_allocations],
+                                              ((ddtsu.[user_objects_alloc_page_count] + ddtsu.[internal_objects_alloc_page_count] - ddtsu.[user_objects_dealloc_page_count] - ddtsu.[internal_objects_dealloc_page_count]) * 1.0) / 128 [tempdb_current_allocations]
                                          FROM sys.dm_db_task_space_usage ddtsu
                                         WHERE ddtsu.[session_id] = des.[session_id]
                                           AND ddtsu.[request_id] = der.[request_id]
@@ -138,12 +140,12 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
           LEFT JOIN sys.dm_resource_governor_workload_groups drgwg
             ON drgwg.[group_id] = des.[group_id]
          OUTER APPLY sys.dm_exec_input_buffer(der.[session_id], der.[request_id]) deib
-         GROUP BY des.[session_id], des.[is_user_process], der.[session_id], der.[request_id], deqmg.[grant_time] [memory_grant_time], deqmg.[query_cost], dtat.[transaction_type],
+         GROUP BY des.[session_id], des.[is_user_process], der.[session_id], der.[request_id], der2.[session_id], deqmg.[grant_time], deqmg.[query_cost], dtat.[transaction_type],
                dtat.[dtc_state], dtat.[transaction_state], der.[status], der.[percent_complete], des.[login_name], des.[original_login_name], der.[total_elapsed_time],
                der.[estimated_completion_time], des.[host_name], dec.[client_net_address], dec.[auth_scheme], dec.[encrypt_option], des.[program_name], dec.[local_net_address],
                des.[database_id], drgwg.[name], der.[command], des.[transaction_isolation_level], dtat.[name], der.[blocking_session_id], der.[open_transaction_count],
                dtst.[open_transaction_count], deqmg.[dop], des.[cpu_time], der.[cpu_time], des.[reads], der.[reads], des.[logical_reads], der.[logical_reads], des.[writes],
-               der.[writes], deib.[event_info] [executing_statement], der.[plan_handle], der.[sql_handle], dec.[most_recent_sql_handle], der.[statement_start_offset],
+               der.[writes], deib.[event_info], der.[plan_handle], der.[sql_handle], dec.[most_recent_sql_handle], der.[statement_start_offset],
                der.[statement_end_offset]) sub
  WHERE sub.[is_user_process] = 1
  ORDER BY sub.[duration] DESC, sub.[session_id];
