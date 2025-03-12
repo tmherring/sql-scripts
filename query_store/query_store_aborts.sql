@@ -31,8 +31,8 @@ BEGIN
                          ROUND(CONVERT(float, SUM(rs.[avg_duration]*rs.[count_executions]))/NULLIF(SUM(rs.[count_executions]), 0)*0.001,2) [avg_duration],
                          ROUND(CONVERT(float, MAX(rs.[max_duration]))*0.001, 2) [max_duration],
                          ROUND(CONVERT(float, MIN(rs.[min_duration]))*0.001, 2) [min_duration],
-                         ROUND(CONVERT(float, SQRT(SUM(rs.[stdev_duration]*rs.[stdev_duration]*rs.[count_executions])/NULLIF(SUM(rs.[count_executions],0)))*0.001,2) [stdev_duration],
-                         COALESCE(ROUND(CONVERT(float, (SQRT(SUM(rs.[stdev_duration]*rs.[stdev_duration]*rs.[count_executions])/NULLIF(SUM(rs.[count_executions],0))*SUM(rs.[count_executions]))/NULLIF(SUM(rs.[avg_duration]*rs.[count_executions]),0)),2),0) [variation_duration],
+                         ROUND(CONVERT(float, SQRT(SUM(rs.[stdev_duration]*rs.[stdev_duration]*rs.[count_executions])/NULLIF(SUM(rs.[count_executions]),0)))*0.001,2) [stdev_duration],
+                         COALESCE(ROUND(CONVERT(float, (SQRT(SUM(rs.[stdev_duration]*rs.[stdev_duration]*rs.[count_executions])/NULLIF(SUM(rs.[count_executions]),0))*SUM(rs.[count_executions]))/NULLIF(SUM(rs.[avg_duration]*rs.[count_executions]),0)),2),0) [variation_duration],
                          ROUND(CONVERT(float, SUM(rs.[avg_duration]*rs.[count_executions]))*0.001,2) [total_duration]
                     FROM sys.query_store_runtime_stats rs
                     JOIN sys.query_store_plan p
