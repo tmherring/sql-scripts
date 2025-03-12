@@ -8,7 +8,7 @@ DECLARE @top_of_window datetimeoffset(7) = CAST(DATEPART(YEAR, DATEADD(HOUR, @wi
 
 IF (SELECT actual_state FROM sys.database_query_store_options) = 2
 BEGIN
-    DECLARE @interval_start_time datetimeoffset(7), @interval_end_time datetimeoffset(7);
+    DECLARE @interval_start_time datetimeoffset(7) = DATEADD(HOUR, @hours_back, @top_of_window), @interval_end_time datetimeoffset(7) = @top_of_window;
     SELECT base.[query_id], bucket.*, base.[query_sql_text], TRY_CAST(p.[query_plan] AS xml) [query_plan], base.[object_name]
       FROM (SELECT TOP (25) p.[query_id], q.[object_id], COALESCE(OBJECT_NAME(q.[object_id]), '') [object_name],
                    qt.[query_sql_text], ROUND(CONVERT(float, SUM(rs.[avg_duration]*rs.[count_executions]))*0.001,2) [total_duration],
