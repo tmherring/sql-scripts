@@ -8,7 +8,10 @@ SET NOCOUNT ON;
 SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[memory_grant_time], sub.[duration], sub.[estimated_completion_duration], sub.[host_name], 
        sub.[client_net_address], sub.[auth_scheme], sub.[encrypt_option], sub.[dns_name], sub.[database], sub.[workload_group], sub.[command_type],
        sub.[transaction_isolation_level], sub.[transaction_name], TRY_CAST(sub.[waits] AS XML) [current_waits],
-       TRY_CAST(sub.[aggregate_waits] AS xml) [aggregate_waits], sub.[blocking_session], sub.[active_threads], sub.[dop],
+       CASE
+         WHEN sub.[state] IS NOT NULL THEN TRY_CAST(sub.[aggregate_waits] AS xml)
+         ELSE NULL
+       END [aggregate_waits], sub.[blocking_session], sub.[active_threads], sub.[dop],
        sub.[head_blocker], sub.[open_tran_count], sub.[cpu_time], sub.[current_cpu], sub.[reads], sub.[current_reads], sub.[logical_reads],
        sub.[current_logical_reads], sub.[writes], sub.[current_writes], TRY_CAST(sub.[tempdb_utilization] AS XML) [tempdb_utilization],
        CASE
@@ -126,7 +129,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                          WHEN ws.waiting_tasks_count > 0 THEN CAST((ws.wait_time_ms * 1.0) / ws.waiting_tasks_count AS decimal(38,4))
                          ELSE 0.0
                        END [avg_wait_time_ms], ws.max_wait_time_ms, ws.signal_wait_time_ms
-                  FROM sys.dm_exec-Session_wait_stats ws
+                  FROM sys.dm_exec_session_wait_stats ws
                  WHERE ws.[session_id] = des.[session_id]
                  ORDER BY ws.waiting_tasks_count DESC
                    FOR XML PATH('wait'), ROOT('waits')) [aggregate_waits]
