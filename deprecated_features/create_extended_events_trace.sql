@@ -11,6 +11,7 @@ CREATE EVENT SESSION [find_deprecated_features] ON SERVER
        )
    ),
    ADD EVENT sqlserver.deprecation_final_support (
+       ACTION (
            sqlserver.client_app_name,
            sqlserver.client_hostname,
            sqlserver.database_id,
