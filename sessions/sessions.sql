@@ -99,13 +99,13 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                         /** Second, check for a Distributed Network Name Listener **/
                         (SELECT agl.[dns_name]
                            FROM sys.availability_group_listeners agl
-                             ON agl.[port] = dec.[local_tcp_port]
+                          WHERE agl.[port] = dec.[local_tcp_port]
                             AND agl.[is_distributed_network_name] = 1), @@SERVERNAME) [dns_name],
                COALESCE(/** First, check for a Virtual Network Name Listener **/
                         (SELECT 'VNN'
                            FROM sys.availability_group_listener_ip_addresses aglip
                            JOIN sys.availability_group_listeners agl
-                          WHERE agl.[listener_id] = aglip.[listener_id]
+                             ON agl.[listener_id] = aglip.[listener_id]
                           WHERE aglip.[ip_address] = dec.[local_net_address]),
                         /** Second, check for a Distributed Network Name Listener **/
                         (SELECT 'DNN'
