@@ -6,7 +6,7 @@ SET NOCOUNT ON;
 **** consolidated into XML fragments that can be reviewed.
 **************************************************************************************************/
 SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[memory_grant_time], sub.[duration], sub.[estimated_completion_duration], sub.[host_name], 
-       sub.[client_net_address], sub.[auth_scheme], sub.[encrypt_option], sub.[dns_name], sub.[database], sub.[workload_group], sub.[command_type],
+       sub.[client_net_address], sub.[auth_scheme], sub.[encrypt_option], sub.[dns_name], sub.[listener_type], sub.[database], sub.[workload_group], sub.[command_type],
        sub.[transaction_isolation_level], sub.[transaction_name], TRY_CAST(sub.[waits] AS XML) [current_waits],
        CASE
          WHEN sub.[state] IS NOT NULL THEN TRY_CAST(sub.[aggregate_waits] AS xml)
@@ -90,11 +90,29 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                                                                RIGHT('000' + CONVERT(VARCHAR, (der.[estimated_completion_time] % 1000)), 3)
                  ELSE NULL
                END [estimated_completion_duration], des.[host_name], dec.[client_net_address], dec.[auth_scheme], dec.[encrypt_option], des.[program_name],
-               COALESCE((SELECT agl.[dns_name]
+               COALESCE(/** First, check for a Virtual Network Name Listener **/
+                        (SELECT agl.[dns_name]
                            FROM sys.availability_group_listener_ip_addresses aglip
                            JOIN sys.availability_group_listeners agl
                              ON agl.[listener_id] = aglip.[listener_id]
-                          WHERE aglip.[ip_address] = dec.[local_net_address]), @@SERVERNAME) [dns_name], DB_NAME(des.[database_id]) [database], drgwg.[name] [workload_group],
+                          WHERE aglip.[ip_address] = dec.[local_net_address]),
+                        /** Second, check for a Distributed Network Name Listener **/
+                        (SELECT agl.[dns_name]
+                           FROM sys.availability_group_listeners agl
+                             ON agl.[listener_id] = dec.[local_tcp_port]
+                            AND agl.[is_distributed_network_name] = 1), @@SERVERNAME) [dns_name],
+               COALESCE(/** First, check for a Virtual Network Name Listener **/
+                        (SELECT 'VNN'
+                           FROM sys.availability_group_listener_ip_addresses aglip
+                           JOIN sys.availability_group_listeners agl
+                             ON agl.[listener_id] = aglip.[listener_id]
+                          WHERE aglip.[ip_address] = dec.[local_net_address]),
+                        /** Second, check for a Distributed Network Name Listener **/
+                        (SELECT 'DNN'
+                           FROM sys.availability_group_listeners agl
+                             ON agl.[listener_id] = dec.[local_tcp_port]
+                            AND agl.[is_distributed_network_name] = 1)) [listener_type],
+               DB_NAME(des.[database_id]) [database], drgwg.[name] [workload_group],
                COALESCE(der.[command], 'AWAITING COMMAND') [command_type],
                CASE des.[transaction_isolation_level]
                  WHEN 0 THEN 'Unspecified'
@@ -158,7 +176,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                der.[estimated_completion_time], des.[host_name], dec.[client_net_address], dec.[auth_scheme], dec.[encrypt_option], des.[program_name], dec.[local_net_address],
                des.[database_id], drgwg.[name], der.[command], des.[transaction_isolation_level], dtat.[name], der.[blocking_session_id], der.[open_transaction_count],
                dtst.[open_transaction_count], deqmg.[dop], des.[cpu_time], der.[cpu_time], des.[reads], der.[reads], des.[logical_reads], der.[logical_reads], des.[writes],
-               der.[writes], deib.[event_info], der.[plan_handle], der.[sql_handle], dec.[most_recent_sql_handle], der.[statement_start_offset],
+               der.[writes], deib.[event_info], der.[plan_handle], der.[sql_handle], dec.[most_recent_sql_handle], der.[statement_start_offset], dec.[local_tcp_port],
                der.[statement_end_offset]) sub
  WHERE sub.[is_user_process] = 1
  ORDER BY sub.[duration] DESC, sub.[session_id];
