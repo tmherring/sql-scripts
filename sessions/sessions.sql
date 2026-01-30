@@ -99,7 +99,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                         /** Second, check for a Distributed Network Name Listener **/
                         (SELECT agl.[dns_name]
                            FROM sys.availability_group_listeners agl
-                             ON agl.[listener_id] = dec.[local_tcp_port]
+                             ON agl.[port] = dec.[local_tcp_port]
                             AND agl.[is_distributed_network_name] = 1), @@SERVERNAME) [dns_name],
                COALESCE(/** First, check for a Virtual Network Name Listener **/
                         (SELECT 'VNN'
@@ -110,7 +110,7 @@ SELECT sub.[session_id], sub.[state], sub.[percent_complete], sub.[login], sub.[
                         /** Second, check for a Distributed Network Name Listener **/
                         (SELECT 'DNN'
                            FROM sys.availability_group_listeners agl
-                             ON agl.[listener_id] = dec.[local_tcp_port]
+                             ON agl.[port] = dec.[local_tcp_port]
                             AND agl.[is_distributed_network_name] = 1)) [listener_type],
                DB_NAME(des.[database_id]) [database], drgwg.[name] [workload_group],
                COALESCE(der.[command], 'AWAITING COMMAND') [command_type],
